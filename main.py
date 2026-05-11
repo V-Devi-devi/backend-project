@@ -3,14 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, engine
-from routers import auth, students
-
 from dotenv import load_dotenv
+load_dotenv()
+from routers import auth, students, ai
+
 
 import models.user     
 import models.student  
 
-load_dotenv()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(students.router, prefix="/students", tags=["Students"])
+app.include_router(ai.router)
 
 @app.get("/")
 def root():
