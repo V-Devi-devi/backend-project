@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Dict, Literal
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from google import genai
@@ -57,6 +57,19 @@ class SummariseRequest(BaseModel):
 
 class SummariseResponse(BaseModel):
     summary: str
+
+class ExplainRequest(BaseModel):
+    topic: str = Field(min_length=2, max_length=300)
+    level: Literal["beginner", "intermediate", "expert"] = "beginner"
+
+class ExplainResponse(BaseModel):
+    explanation: str
+
+LEVEL_PERSONAS = {
+    "beginner": "a school student who has never programmed before",
+    "intermediate": "a college student who knows Python basics",
+    "expert": "a senior software engineer who wants implementation details",
+}
 
 @router.post("/chat", response_model=ChatResponse)
 def chat_with_ai(
@@ -120,6 +133,47 @@ def summarize_text(
 
     except Exception as exc:
         print(f"[summarize] Gemini error: {exc}")
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable."
+        )
+
+@router.post("/explain", response_model=ExplainResponse)
+def explain_topic(
+    request: ExplainRequest,
+    current_user=Depends(get_current_user),
+):
+    persona = LEVEL_PERSONAS[request.level]
+
+    prompt = (
+        f"Explain the following to {persona}.\n"
+        f"Include a real-world analogy. "
+        f"If relevant, add a short Python code example "
+        f"(5 lines max).\n"
+        f"Keep the explanation under 200 words.\n\n"
+        f"TOPIC: {request.topic}"
+    )
+
+    try:
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=GENERATION_CONFIG,
+        )
+
+        return ExplainResponse(
+            explanation=response.text.strip()
+        )
+
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Content could not be processed."
+        )
+
+    except Exception as exc:
+        print(f"[explain] Gemini error: {exc}")
 
         raise HTTPException(
             status_code=503,
