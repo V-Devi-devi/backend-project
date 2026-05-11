@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./kuppam.db')
-# os.getenv('DATABASE_URL', default) returns default if the variable is not set
+
 
 engine = create_engine(
     DATABASE_URL,
