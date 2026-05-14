@@ -1,0 +1,40 @@
+name: CI
+
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+   
+    runs-on: ubuntu-latest
+
+    steps:
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      
+      - name: Install dependencies
+        run: |
+          cd student-api
+          pip install -r requirements.txt
+
+      
+      - name: Run tests
+        run: |
+          cd student-api
+          python -m pytest tests/ -v
+        env:
+          
+          SECRET_KEY: test-secret-key-for-ci-only-not-production
+          GEMINI_API_KEY: dummy-key-not-used-in-tests

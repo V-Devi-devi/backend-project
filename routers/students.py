@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from database import get_db
@@ -12,7 +13,7 @@ router = APIRouter()
 @router.get("/", response_model=List[StudentResponse])
 def get_students(
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     return db.query(Student).all()
 
@@ -20,54 +21,92 @@ def get_students(
 def get_student(
     student_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     student = db.query(Student).filter(Student.id == student_id).first()
+
     if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found"
+        )
+
     return student
 
 @router.post("/", status_code=201, response_model=StudentResponse)
 def create_student(
     data: StudentCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    student = Student(**data.dict())
-    db.add(student)
-    db.commit()
-    db.refresh(student)
-    return student
+    student = Student(**data.model_dump())
+
+    try:
+        db.add(student)
+        db.commit()
+        db.refresh(student)
+
+        return student
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
 
 @router.put("/{student_id}", response_model=StudentResponse)
 def update_student(
     student_id: int,
     data: StudentCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
 
-    student.name = data.name
-    student.age = data.age
-    student.email = data.email
-    student.city = data.city
-    db.commit()
-    db.refresh(student)
-    return student
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found"
+        )
+
+    try:
+        student.name = data.name
+        student.age = data.age
+        student.email = data.email
+        student.city = data.city
+
+        db.commit()
+        db.refresh(student)
+
+        return student
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
 
 @router.delete("/{student_id}")
 def delete_student(
     student_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     student = db.query(Student).filter(Student.id == student_id).first()
+
     if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found"
+        )
 
     db.delete(student)
     db.commit()
-    return {"message": f"Student '{student.name}' deleted"}
+
+    return {
+        "message": f"Student '{student.name}' deleted"
+    }
