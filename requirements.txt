@@ -5,6 +5,7 @@ passlib[bcrypt]
 python-jose[cryptography]
 bcrypt==4.0.1
 python-dotenv
+email-validator
 google-genai
 httpx
 pytest
