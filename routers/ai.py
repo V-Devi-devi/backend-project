@@ -170,7 +170,7 @@ def explain_topic(
     except Exception as exc:
         print(f"[explain] Gemini error: {exc}")
         raise HTTPException(status_code=503, detail="AI service unavailable.")
-
+    
 
 # ── POST /ai/stream ──────────────────────────────────────────────────
 @router.post("/stream")

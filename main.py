@@ -1,35 +1,25 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from dotenv import load_dotenv
 from database import Base, engine
-
-import models.user
-import models.student
-
+load_dotenv()
 from routers import auth, students, ai
 
-print("GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
+import models.user     
+import models.student  
+
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="Student Management API",
-    version="1.0.0"
-)
+app = FastAPI(title="Student Management API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://react-project-devi.vercel.app"
-    ],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,6 +31,4 @@ app.include_router(ai.router)
 
 @app.get("/")
 def root():
-    return {
-        "message": "Student API is running"
-    }
+    return {"message": "Student API is running"}
